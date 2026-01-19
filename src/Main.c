@@ -151,7 +151,7 @@ void Delete(AlxWindow* w){
 }
 
 int main(){
-    if(Create("3D Engine",2500,1200,1,1,Setup,Update,Delete))
+    if(Create("4D Engine",2500,1200,1,1,Setup,Update,Delete))
         Start();
     return 0;
 }
