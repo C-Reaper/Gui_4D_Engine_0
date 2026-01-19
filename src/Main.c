@@ -25,7 +25,7 @@ void Cube4D_Build(Vector* points,Vec3D p,Vec3D d){
 		{	p.x,		p.y,		p.z,		p.w			},
 		{	p.x + d.x,	p.y,		p.z,		p.w			},
 		{	p.x,		p.y + d.y,	p.z,		p.w			},
-		{	p.x,		p.y,		p.z, + d.z,	p.w			},
+		{	p.x,		p.y,		p.z + d.z,	p.w			},
 		{	p.x,		p.y,		p.z,		p.w + d.w	},
 		{	p.x + d.x,	p.y + d.y,	p.z,		p.w			},
 		{	p.x + d.x,	p.y,		p.z + d.z,	p.w			},
@@ -44,8 +44,35 @@ void Cube4D_Build(Vector* points,Vec3D p,Vec3D d){
 	}
 }
 
+M4x4D Matrix_MakeRotation4XY(float fAngleRad){
+	return (M4x4D){{
+		{ 1.0f,0.0f,			0.0f,			0.0f },
+		{ 0.0f,1.0f,			0.0f,			0.0f },
+		{ 0.0f,0.0f, cosf(fAngleRad),sinf(fAngleRad) },
+		{ 0.0f,0.0f,-sinf(fAngleRad),cosf(fAngleRad) }
+	}};
+}
+M4x4D Matrix_MakeRotation4XZ(float fAngleRad){
+	return (M4x4D){{
+		{ 1.0f,0.0f,			0.0f,			0.0f },
+		{ 0.0f,cosf(fAngleRad),	0.0f,sinf(fAngleRad) },
+		{ 0.0f,0.0f, 			1.0f,			0.0f },
+		{ 0.0f,-sinf(fAngleRad),0.0f,cosf(fAngleRad) }
+	}};
+}
+M4x4D Matrix_MakeRotation4YZ(float fAngleRad){
+	return (M4x4D){{
+		{ cosf(fAngleRad),	0.0f,0.0f,	sinf(fAngleRad) },
+		{ 0.0f,				1.0f,0.0f,			   0.0f },
+		{ 0.0f,				0.0f,1.0f,			   0.0f },
+		{ -sinf(fAngleRad), 0.0f,0.0f,  cosf(fAngleRad) }
+	}};
+}
+
+
 
 Vector points;
+float angle;
 Vec3D cam;
 float ax;
 float ay;
@@ -53,6 +80,7 @@ float ar;
 
 void Setup(AlxWindow* w){
 	cam = Vec3D_New(0.0f,0.0f,0.0f);
+	angle = 0.0f;
 	ax = 0.0f;
 	ay = 0.0f;
 	ar = 16.0f / 9.0f;
@@ -84,12 +112,17 @@ void Update(AlxWindow* w){
 
 	Clear(BLACK);
 
+	angle += F32_PI * w->ElapsedTime;
+
+	const M4x4D rotXY = Matrix_MultiplyMatrix(Matrix_MakeRotation4XZ(angle * 0.33f),Matrix_MakeRotation4YZ(angle));
 	const M4x4D rot = Matrix_MultiplyMatrix(Matrix_MakeRotationY(-ay),Matrix_MakeRotationX(-ax));
 
 	for (int i = 0;i<points.size;i++){
 		Vec3D pt = *(Vec3D*)Vector_Get(&points,i);
 		
-		const Vec3D t = Vec3D_Sub(pt,cam);
+		const Vec3D rpt = Matrix_MultiplyVector(rotXY,pt);
+
+		const Vec3D t = Vec3D_Sub(rpt,cam);
 		const Vec3D p = Matrix_MultiplyVector(rot,t);
 
 		if(p.w <= 0.0f)
@@ -108,7 +141,7 @@ void Update(AlxWindow* w){
 
 		Circle_RenderX(
 			WINDOW_STD_ARGS,
-			op,F32_Clamp(1.0f / ppp.z,0.0f,GetWidth() / 2),
+			op,F32_Clamp(w * 0.01f / ppp.z,0.0f,w),
 			WHITE
 		);
 	}
